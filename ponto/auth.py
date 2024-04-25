@@ -12,12 +12,12 @@ def login():
         cliente = MongoClient('mongodb://localhost:27017/') #cria a conexão com o mongodb
         db = cliente['registro-ponto'] #acessa o banco de dados no mongodb
         funcionarios = db['Funcionario'] #acessa a tabela/coleção Funcionario no mongodb
-        print(funcionarios.)
         error=None
 
-        if funcionarios.count_documents == 0: #checa se a tabela Funcionario está vazia
+        documentos_colecao = funcionarios.count_documents({})
+        if documentos_colecao == 0: #checa se a tabela Funcionario está vazia, estando ela cria um funcionário padrão para ter acesso ao sistema.
             print('Não temos nenhum funcionário, estaremos criando o primeiro.')
-            documento_padrao = {'nome':'admin','cpf':'123.456.789-09','senha':generate_password_hash('123456')}
+            documento_padrao = {'nome':'admin','cpf':'123.456.789-09','senha':generate_password_hash('123456','pbkdf2:sha1')}
             funcionarios.insert_one(documento_padrao)
             print('Criado funcionário padrão')
 
@@ -27,15 +27,9 @@ def login():
             error='Dado senha necessário'
 
         if error is None:
-            documento = funcionarios.find_one({ #pesquisa o cpf e a senha se estão no banco.
-                '$and':[
-                    {'cpf':cpf},
-                    {'senha':check_password_hash('senha',senha)}
-                ]
-            })
+            documento = funcionarios.find_one({'cpf':cpf})#pesquisa o cpf e a senha se estão no banco.
 
-            if documento is not None:
-                print('Login aceito!')
+            if documento is not None and check_password_hash(documento['senha'],senha):
                 session.clear()
                 session['cpf']=documento['cpf']
                 return redirect(url_for('index'))
